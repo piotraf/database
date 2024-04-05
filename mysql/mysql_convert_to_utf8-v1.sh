@@ -28,6 +28,9 @@ set -e
 # global variables
 sqlfile="/var/tmp/convert_database_to_utf8_procedure.sql"
 # functions
+# below sql procedure thanks to https://stackoverflow.com/users/1612273/arnoud
+# https://stackoverflow.com/questions/18445969/how-to-change-collation-of-all-rows-from-latin1-swedish-ci-to-utf8-unicode-ci
+# which is based on https://stackoverflow.com/questions/12718596/mysql-loop-through-tables/12718767#12718767
 function create_sql_file(){
 cat > "${sqlfile}" << "EOF"
 delimiter //
