@@ -12,16 +12,14 @@
     dbchar: utf8
     rootpath: "{{ maindir }}/{{ mydbname }}"
     varfile: "{{ rootpath }}/tmp/vars.yml"
-    # future download option
-    #https://downloads.mysql.com/archives/get/p/23/file/mysql-5.5.62-linux-glibc2.12-x86_64.tar.gz
+    # future download option 
+    # https://downloads.mysql.com/archives/get/p/23/file/mysql-5.5.62-linux-glibc2.12-x86_64.tar.gz
     # https://downloads.mysql.com/archives/get/p/23/file/mysql-5.6.51-linux-glibc2.12-x86_64.tar.gz
     # https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.44-linux-glibc2.12-x86_64.tar.gz
     # https://downloads.mysql.com/archives/get/p/23/file/mysql-8.0.36-linux-glibc2.28-x86_64.tar.xz
-    # https://dev.mysql.com/downloads/file/?id=528003
-    # https://dev.mysql.com/downloads/file/?id=527192
     # https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.0-linux-glibc2.28-x86_64.tar.xz
-    #5.5 req ncurses-compat
-    #5.6 numactl
+    # required for 5.5 ncurses-compat
+    # required for 5.6 numactl
   tasks:
   - name: Create dbbinpath directory if not exists
     file: 
@@ -123,7 +121,6 @@
     ansible.builtin.wait_for:
       path: "{{ rootpath }}/logs/mysql_error.log"
       search_regex: "ready for connections"
-#    when: dbver == 57 or dbver == 56 or dbver == 55
   - name: "Shutdown MySQL database server in background"
     shell:
       cmd: "sleep 10;{{ dbbin }}/bin/mysqladmin --defaults-file={{ rootpath }}/cfg/my_client.cnf  shutdown"
