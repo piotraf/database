@@ -1,0 +1,4 @@
+alias mysqld{{ mydbname }}_start="{{ dbbin }}/bin/mysqld --defaults-file={{ rootpath }}/cfg/my_server.cnf &"
+alias mysqld{{ mydbname }}_stop="{{ dbbin }}/bin/mysqladmin --defaults-file={{ rootpath }}/cfg/my_client.cnf shutdown"
+alias mysqladmin{{ mydbname }}="{{ dbbin }}/bin/mysqladmin --defaults-file={{ rootpath }}/cfg/my_client.cnf"
+alias mysql{{ mydbname }}="{{ dbbin }}/bin/mysql --defaults-file={{ rootpath }}/cfg/my_client.cnf"

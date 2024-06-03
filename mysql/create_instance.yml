@@ -1,0 +1,143 @@
+---
+##################################################
+# create_instance.yml dtd: 2024-06-03 0.1 beta   #
+##################################################
+- name: Localhost single play to create new mysql database server instance with given name in given non-privilaged user space
+  hosts: localhost
+  vars:
+    maindir: /srv/piotr/dbs
+    dbbinpath: "{{ maindir }}/mysqlbin"
+    mydbname: test4
+    dbver: 80
+    dbchar: utf8
+    rootpath: "{{ maindir }}/{{ mydbname }}"
+    varfile: "{{ rootpath }}/tmp/vars.yml"
+    # future download option
+    #https://downloads.mysql.com/archives/get/p/23/file/mysql-5.5.62-linux-glibc2.12-x86_64.tar.gz
+    # https://downloads.mysql.com/archives/get/p/23/file/mysql-5.6.51-linux-glibc2.12-x86_64.tar.gz
+    # https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.44-linux-glibc2.12-x86_64.tar.gz
+    # https://downloads.mysql.com/archives/get/p/23/file/mysql-8.0.36-linux-glibc2.28-x86_64.tar.xz
+    # https://dev.mysql.com/downloads/file/?id=528003
+    # https://dev.mysql.com/downloads/file/?id=527192
+    # https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.0-linux-glibc2.28-x86_64.tar.xz
+    #5.5 req ncurses-compat
+    #5.6 numactl
+  tasks:
+  - name: Create dbbinpath directory if not exists
+    file: 
+      path: "{{ dbbinpath }}"
+      state: directory
+  - name: remove directory
+    file:
+      path: "{{ rootpath }}"
+      state: absent
+  - name: Create directory structure for the mysql database server instance
+    file:
+      path: "{{ rootpath }}/{{ item }}"
+      state: directory
+    with_items:
+      - data
+      - logs
+      - run
+      - tmp
+      - cfg
+      - binlogs
+      - innodbtmp
+      - innodb_tmpdir
+  - name: Choose appropriate binary version based on dbver
+    template:
+      src:  vars.yml.j2
+      dest: "{{ varfile }}"
+  - name: Include vars dbver_full
+    include_vars: "{{ varfile }}"
+  - name: Set facts based on included vars
+    set_fact:
+      dbbin1: "{{ dbbinpath }}/{{ dbver_full }}"
+  - name: Create link to dbbin1
+    file:
+      src: "{{ dbbin1 }}"
+      dest: "{{ maindir }}/mysqlbin{{ dbver }}"
+      state: link
+  - name: "Set name based on above"
+    set_fact:
+      dbbin: "{{ maindir }}/mysqlbin{{ dbver }}"
+  - name: Prepare config file
+    template:
+      src: my_server.cnf.j2
+      dest: "{{ rootpath }}/cfg/my_server.cnf"
+  - name: Prepare config file
+    template:
+      src: my_client.cnf.j2
+      dest: "{{ rootpath }}/cfg/my_client.cnf"
+  - name: Initialize database 5.5 or 5.6
+    shell:
+      cmd: "{{ dbbin }}/scripts/mysql_install_db --defaults-file={{ rootpath }}/cfg/my_server.cnf --user={{ ansible_user }} --basedir={{ dbbin }}"
+    when: dbver == 55 or dbver == 56
+  - name: Initialize database 5.7 or 8.0 or 8.4
+    shell:
+      cmd: "{{ dbbin }}/bin/mysqld --defaults-file={{ rootpath }}/cfg/my_server.cnf --user={{ ansible_user }} --basedir={{ dbbin }} --initialize-insecure"
+    when: dbver == 57 or dbver == 80 or dbver == 84
+  - name: Prepare root sql file
+    template:
+      src: root.sql.j2
+      dest: "{{ rootpath }}/tmp/root{{ mydbname }}.sql"
+  - name: "Start db with new password (if 55/56)"
+    shell:
+      cmd: "{{ dbbin }}/bin/mysqld --defaults-file={{ rootpath }}/cfg/my_server.cnf  --skip-grant-tables --init-file={{ rootpath }}/tmp/root{{ mydbname }}.sql &"
+    when: dbver == 56 or dbver == 55
+  - name: "Start db with new password (if 57/80/84)"
+    shell:
+      cmd: "{{ dbbin }}/bin/mysqld --defaults-file={{ rootpath }}/cfg/my_server.cnf  --init-file={{ rootpath }}/tmp/root{{ mydbname }}.sql &"
+    when: dbver == 57 or dbver == 80 or dbver == 84
+  - name: Wait until the string "completed" is in the file /tmp/foo before continuing
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "ready for connections"
+    when: dbver == 57 or dbver == 56 or dbver == 55 or dbver == 80
+  - name: Wait until the string "MySQL Server Initialization - end" is in the file logs/mysql_error.log before continuing
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "MySQL Server Initialization - end"
+    when: dbver == 84
+  - name: "Shutdown db"
+    shell:
+      cmd: "sleep 10;{{ dbbin }}/bin/mysqladmin --defaults-file={{ rootpath }}/cfg/my_client.cnf  shutdown"
+  - name: Wait until the string "completed" is in the file logs/mysql_error.log before continuing 55/56/57
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "Shutdown completed"
+    when: dbver == 57 or dbver == 56 or dbver == 55
+  - name: Wait until the string "complete" is in the file logs/mysql_error.log before continuing 55/56/57
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "Shutdown complete"
+    when: dbver == 80 or dbver == 84
+  - name: Remove error log /logs/mysql_error.log
+    file:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      state: absent
+  - name: "Start MySQL database server in background"
+    shell:
+      cmd: "{{ dbbin }}/bin/mysqld --defaults-file={{ rootpath }}/cfg/my_server.cnf &"
+  - name: Wait until the string "ready for connections" is in the file /logs/mysql_error.log before continuing
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "ready for connections"
+#    when: dbver == 57 or dbver == 56 or dbver == 55
+  - name: "Shutdown MySQL database server in background"
+    shell:
+      cmd: "sleep 10;{{ dbbin }}/bin/mysqladmin --defaults-file={{ rootpath }}/cfg/my_client.cnf  shutdown"
+  - name: Wait until the string "completed" is in the file /logs/mysql_error.log before continuing
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "Shutdown completed"
+    when: dbver == 57 or dbver == 56 or dbver == 55
+  - name: Wait until the string "complete" is in the file logs/mysql_error.log before continuing 55/56/57
+    ansible.builtin.wait_for:
+      path: "{{ rootpath }}/logs/mysql_error.log"
+      search_regex: "Shutdown complete"
+    when: dbver == 80 or dbver == 84
+  - name: Prepare bashrc.d file
+    template:
+      src: bashrcd.append.j2
+      dest: "$HOME/.bashrc.d/{{ mydbname }}.bashrc"

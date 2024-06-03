@@ -1,0 +1,12 @@
+---
+{% if dbver == 55 %}
+dbver_full: mysql-5.5.62-linux-glibc2.12-x86_64
+{% elif dbver == 56 %}
+dbver_full: mysql-5.6.51-linux-glibc2.12-x86_64
+{% elif dbver == 57 %}
+dbver_full: mysql-5.7.44-linux-glibc2.12-x86_64
+{% elif dbver == 80 %}
+dbver_full: mysql-8.0.36-linux-glibc2.28-x86_64
+{% elif dbver == 84 %}
+dbver_full: mysql-8.4.0-linux-glibc2.28-x86_64
+{% endif %}

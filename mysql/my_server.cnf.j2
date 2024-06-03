@@ -1,0 +1,25 @@
+[mysqld]
+lower_case_table_names = 1
+skip-networking
+server-id = 1
+basedir = {{ dbbin }}
+datadir = {{ rootpath }}//data
+log_error = {{ rootpath }}/logs/mysql_error.log
+log-bin = {{ rootpath }}/binlogs/mysql-binlog
+tmpdir = {{ rootpath }}/tmp
+{% if dbver == 55 %}
+#innodb_tmpdir = {{ rootpath }}/innodb_tmpdir
+{% else %}
+innodb_tmpdir = {{ rootpath }}/innodb_tmpdir
+{% endif %}
+socket = {{ rootpath }}/run/mysqld{{ mydbname }}.sock
+pid-file = {{ rootpath }}/run/mysqld{{ mydbname }}.pid
+lc_messages_dir = {{ dbbin }}/share
+{% if dbchar == 'utf8' %}
+#8.4 not comapat skip-character-set-client-handshake
+character-set-server=utf8
+collation-server = utf8_unicode_ci
+init-connect='SET NAMES utf8'
+{% else %}
+{% endif %}
+

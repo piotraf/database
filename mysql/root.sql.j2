@@ -1,0 +1,5 @@
+{% if dbver == 56 or dbver == 55 %}
+UPDATE mysql.user SET Password=PASSWORD('mysqlpass{{ mydbname }}') WHERE User='root';
+{% else %}
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysqlpass{{ mydbname }}';
+{% endif %}
